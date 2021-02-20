@@ -2,4 +2,6 @@
 
 This directory contains all files necessary for Homework 1.
 
-Following Packages Required: ....
+Python version 3.6
+
+Tensorflow version 1.15
