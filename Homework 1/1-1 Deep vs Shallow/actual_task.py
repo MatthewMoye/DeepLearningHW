@@ -148,6 +148,7 @@ test_acc_lists = []
 start = time.time()
 model_count = range(3)
 for i in model_count:
+    start = time.time()
     tf.reset_default_graph()
     with tf.Session() as sess:
         tf.set_random_seed(1)
@@ -155,6 +156,6 @@ for i in model_count:
         loss_lists.append(loss_list)
         train_acc_lists.append(train_acc_list)
         test_acc_lists.append(test_acc_list)
-print("Runtime:", time.time() - start)
+    print("Runtime:", time.time() - start)
 
 plot(len(model_count), loss_lists, train_acc_lists, test_acc_lists, "MNIST_models.png")
