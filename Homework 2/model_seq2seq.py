@@ -8,6 +8,7 @@ import torch.utils.data as Data
 import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import StepLR
 
+random.seed(1)
 np.random.seed(1)
 use_cuda = torch.cuda.is_available()
 device = torch.device('cuda' if use_cuda else 'cpu')
@@ -46,7 +47,7 @@ class Seq2Seq(nn.Module):
             output_list.append(output)
             # Teacher Forcing
             teacher_force = random.random()
-            if train and teacher_force <= 0.1:
+            if train and teacher_force <= 0.2:
                 idxs = y[:,i].unsqueeze(1)
             else:
                 _, idxs = torch.max(output, 2)
@@ -127,7 +128,7 @@ if sys.argv[3] == "train":
     
     # Train
     loss_list = []
-    for i in range(1,101):
+    for i in range(1,81):
         start = time.time()
         loss = train_model(model, X, train_loader, optimizer, criterion)
         print('Epoch:{}  \tLoss:{:.8f}\t\tTime:{:.4f}s'.format(i, loss, time.time()-start))

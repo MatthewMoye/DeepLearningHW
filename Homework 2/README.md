@@ -48,4 +48,4 @@ Example:
 ```
 
 ## Results
-The model achieved a bleu score of 0.691573
+The model achieved a bleu score of 0.69249
