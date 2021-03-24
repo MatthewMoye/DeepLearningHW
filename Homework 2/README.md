@@ -11,29 +11,29 @@ Pytorch Version 1.8.0
 MLDS_hw2_1_data: https://drive.google.com/file/d/1RevHMfXZ1zYjUm4fPU1CfFKAjyMJjdgJ/view
 
 ## Training the Model
-Two ways to train:
+The Model has already been trained and is located in the resources folder. Training the model took about an hour. If you wish to retrain the model, you can do so in either of the following two ways:
 ```
 1. python model_seq2seq.py PATH_TO_FEATURES PATH_TO_LABEL/training_label.json train
-2. hw2_seq2seq_train.sh PATH_TO_FEATURES PATH_TO_LABEL/training_label.json
+2. bash hw2_seq2seq_train.sh PATH_TO_FEATURES PATH_TO_LABEL/training_label.json
 ```
 
 Examples:
 ```
 1. python model_seq2seq.py MLDS_hw2_1_data/training_data/feat/ MLDS_hw2_1_data/training_label.json train
-2. hw2_seq2seq_train.sh MLDS_hw2_1_data/training_data/feat/ MLDS_hw2_1_data/training_label.json
+2. bash hw2_seq2seq_train.sh MLDS_hw2_1_data/training_data/feat/ MLDS_hw2_1_data/training_label.json
 ```
 
 ## Testing the Model
 Two ways to test:
 ```
 1. python model_seq2seq.py PATH_TO_FEATURES output_testset.txt test
-2. hw2_seq2seq_train.sh PATH_TO_FEATURES output_testset.txt
+2. bash hw2_seq2seq_train.sh PATH_TO_FEATURES output_testset.txt
 ```
 
 Examples:
 ```
 1. python model_seq2seq.py MLDS_hw2_1_data/testing_data/feat/ output_testset.txt test
-2. hw2_seq2seq_train.sh MLDS_hw2_1_data/testing_data/feat/ output_testset.txt
+2. bash hw2_seq2seq_train.sh MLDS_hw2_1_data/testing_data/feat/ output_testset.txt
 ```
 
 ## Bleu Evaluation

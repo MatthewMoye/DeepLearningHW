@@ -1,4 +1,4 @@
-import pickle, string, sys, time, torch, os
+import pickle, random, string, sys, time, torch, os
 import numpy as np
 import pandas as pd
 import torch.nn as nn
@@ -20,37 +20,33 @@ MAX_WORDS_SENTENCE = 25
 class Seq2Seq(nn.Module):
     def __init__(self):
         super().__init__()
-        self.encoder = nn.GRU(4096, 256, batch_first = True)
+        self.encoder = nn.LSTM(4096, 256, batch_first = True)
         self.embedding = nn.Embedding(2428, 256)
-        self.decoder = nn.GRU(256*2, 256, batch_first = True)
+        self.decoder = nn.LSTM(256*2, 256, batch_first = True)
         self.net = nn.Linear(256, 2428)
 
     def forward(self, X, y, train=True):
-        # X - 64,80,4096, y - 64,25
         output_list = []
-        # en_out - 64,80,256, hidden(each) - 1,64,256
+        # Encoder
         encoder_output, hidden = self.encoder(X)
-        # 64,80,256
-        idxs = torch.ones(X.shape[0], 1, dtype=torch.long)
-        # 64,1
-        pad = torch.zeros(X.shape[0], 1, 256)
-        if use_cuda:
-          # 64,80,256
-          idxs = idxs.cuda()
-          # 64,1
-          pad = pad.cuda()
+        idxs = torch.ones(X.shape[0], 1, dtype=torch.long).to(device)
+        context = torch.zeros(X.shape[0], 1, 256).to(device)
+        # Iterate over max length pre-defined for sentence
         for i in range(MAX_WORDS_SENTENCE):
-            # 64,1,512
-            input_emb = torch.cat((self.embedding(idxs),pad),2)
-            # de_out - 64,1,256, hidden(each) - 1,64,256
+            # Embed
+            input_emb = torch.cat((self.embedding(idxs),context),2)
+            # Decoder
             decoder_output, hidden = self.decoder(input_emb, hidden)
-            attn_out = torch.tanh(torch.bmm(encoder_output, hidden.transpose(0,1).transpose(1,2)))
-            attn_weights = F.softmax(attn_out, dim=1).squeeze(2).unsqueeze(1)
-            pad = torch.bmm(attn_weights, encoder_output)
-            # 64 1 2428
+            # Attention
+            attn_energy = torch.tanh(torch.bmm(encoder_output, hidden[0].transpose(0,1).transpose(1,2)))
+            attn_weights = F.softmax(attn_energy, dim=1).squeeze(2).unsqueeze(1)
+            context = torch.bmm(attn_weights, encoder_output)
+            # Output index for word
             output = self.net(decoder_output)
             output_list.append(output)
-            if train:
+            # Teacher Forcing
+            teacher_force = random.random()
+            if train and teacher_force <= 0.1:
                 idxs = y[:,i].unsqueeze(1)
             else:
                 _, idxs = torch.max(output, 2)
@@ -58,8 +54,7 @@ class Seq2Seq(nn.Module):
 
 
 def train_model(model, X, data, optimizer, criterion):
-    if use_cuda:
-        model.cuda()
+    model.to(device)
     model.train()
     total_loss = 0
     for i, (X_pos, y) in enumerate(data):
@@ -125,9 +120,7 @@ if sys.argv[3] == "train":
     X = torch.tensor(train_feature_list)
 
     # Call Model
-    model = Seq2Seq()
-    if use_cuda:
-        model.cuda()
+    model = Seq2Seq().to(device)
 
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     criterion = nn.CrossEntropyLoss()
@@ -137,10 +130,9 @@ if sys.argv[3] == "train":
     for i in range(1,101):
         start = time.time()
         loss = train_model(model, X, train_loader, optimizer, criterion)
-        print('Epoch:{}\tLoss:{}\tTime:{}s'.format(i, loss, time.time()-start))
+        print('Epoch:{}  \tLoss:{:.8f}\t\tTime:{:.4f}s'.format(i, loss, time.time()-start))
         loss_list.append(loss)
-        if i%10 == 0:
-            torch.save(model.cpu().state_dict(), 'resources/model{}.pt'.format(i))
+    torch.save(model.cpu().state_dict(), 'resources/model.pt')
 
 
 elif sys.argv[3] == 'test':
@@ -156,21 +148,21 @@ elif sys.argv[3] == 'test':
     feature_list = []
     for i in files:
         feature_list.append(np.load(test_feature_directory + i))
-    for m in [j*10 for j in range(1,21)]:
-        # Load model
-        model = Seq2Seq()
-        model.load_state_dict(torch.load('resources/model{}.pt'.format(m)))
-        video_prediction_list = []
-        model.eval()
-        
-        # Get predictions
-        for i in range(len(feature_list)):
-            feat = torch.tensor(feature_list[i]).unsqueeze(0).to(device)
-            output = model(feat.float(), None, False).squeeze(0)
-            _, idx_list = torch.max(output,1)
-            video_prediction_list.append([files[i][:-4], ' '.join([words[i] for i in idx_list.tolist() if i != 0 and i != 2])])
+    
+    # Load model
+    model = Seq2Seq().to(device)
+    model.load_state_dict(torch.load('resources/model.pt'))
+    video_prediction_list = []
+    model.eval()
+    
+    # Get predictions
+    for i in range(len(feature_list)):
+        feat = torch.tensor(feature_list[i]).unsqueeze(0).to(device)
+        output = model(feat.float(), None, False).squeeze(0)
+        _, idx_list = torch.max(output,1)
+        video_prediction_list.append([files[i][:-4], ' '.join([words[i] for i in idx_list.tolist() if i != 0 and i != 2])])
 
-        # Write results to file
-        with open(str(m)+output_name,'w') as out:
-            for i in video_prediction_list:
-                out.write('{},{}\n'.format(i[0], i[1]))
+    # Write results to file
+    with open(output_name,'w') as out:
+        for i in video_prediction_list:
+            out.write('{},{}\n'.format(i[0], i[1]))
