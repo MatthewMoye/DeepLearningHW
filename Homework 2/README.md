@@ -37,6 +37,7 @@ Examples:
 ```
 
 ## Bleu Evaluation
+How to get Bleu score:
 ```
 1. python bleu_eval.py PATH_TO_LABEL/training_label.json output_testset.txt
 ```
@@ -45,3 +46,6 @@ Example:
 ```
 1. python bleu_eval.py MLDS_hw2_1_data/testing_label.json output_testset.txt
 ```
+
+## Results
+The model achieved a bleu score of 0.691573
