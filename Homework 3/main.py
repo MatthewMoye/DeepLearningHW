@@ -1,4 +1,4 @@
-import time, torch, os
+import argparse, time, torch, os
 import torch.nn as nn
 import torch.utils.data
 import torch.optim as optim
@@ -45,7 +45,23 @@ def generate_results(model):
         vutils.save_image(X,'results/{}/images_real/real_sample_{}.png'.format(model,i+1),normalize=True)
         vutils.save_image(fake_imgs[i].detach(),'results/{}/images_fake/fake_sample_{}.png'.format(model,i+1),normalize=True)
 
+# Train model
+def train(model):
+    if model == "DCGAN":
+        from model_DCGAN import train
+    elif model == "WGAN":
+        from model_WGAN import train
+    else:
+        from model_ACGAN import train
+    train()
 
-from model_DCGAN import train
-train()
-#generate_results("DCGAN")
+parser = argparse.ArgumentParser()
+parser.add_argument('--model', choices=["DCGAN", "WGAN", "ACGAN"], required=True, help="Different Model Choices")
+parser.add_argument('--evaluate', choices=["train", "generate"], required=True, help="Whether to train a model or generate images")
+args = parser.parse_args()
+print(args)
+
+if args.evaluate == "train":
+    train(args.model)
+else:
+    generate_results(args.model)

@@ -20,12 +20,19 @@ def weights_init(m):
         nn.init.normal_(m.weight.data, 1.0, 0.02)
         nn.init.constant_(m.bias.data, 0)
 
-# https://github.com/pytorch/examples/blob/master/dcgan/main.py
+
+"""
+References for DCGAN model
+https://arxiv.org/pdf/1511.06434.pdf
+https://github.com/pytorch/examples/blob/master/dcgan
+https://github.com/w86763777/pytorch-gan-collections
+https://github.com/eriklindernoren/PyTorch-GAN
+"""
 class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
         self.main = nn.Sequential(
-            nn.ConvTranspose2d(100, 1024, 4, 1, 0, bias=False),
+            nn.ConvTranspose2d(100, 1024, 2, 1, 0, bias=False),
             nn.BatchNorm2d(1024),
             nn.ReLU(True),
             nn.ConvTranspose2d(1024, 512, 4, 2, 1, bias=False),
@@ -37,97 +44,103 @@ class Generator(nn.Module):
             nn.ConvTranspose2d(256, 128, 4, 2, 1, bias=False),
             nn.BatchNorm2d(128),
             nn.ReLU(True),
-            nn.ConvTranspose2d(128, 3, 1, 1, 0, bias=False),
+            nn.ConvTranspose2d(128, 3, 4, 2, 1, bias=False),
             nn.Tanh()
         )
 
-    def forward(self, input):
-        return self.main(input)
+    def forward(self, x):
+        return self.main(x).squeeze(1)
 
 
 class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
         self.main = nn.Sequential(
-            nn.Conv2d(3, 64, 4, 2, 1, bias=False),
+            nn.Conv2d(3, 64, 5, 2, 2, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(64, 128, 4, 2, 1, bias=False),
+            nn.Conv2d(64, 128, 5, 2, 2, bias=False),
             nn.BatchNorm2d(128),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(128, 256, 4, 2, 1, bias=False),
+            nn.Conv2d(128, 256, 5, 2, 2, bias=False),
             nn.BatchNorm2d(256),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(256, 512, 4, 2, 1, bias=False),
+            nn.Conv2d(256, 512, 5, 2, 2, bias=False),
             nn.BatchNorm2d(512),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(512, 1, 2, 2, 0, bias=False),
+        )
+        self.out = nn.Sequential(
+            nn.Linear(2048, 1),
             nn.Sigmoid()
         )
 
-    def forward(self, input):
-        return self.main(input).view(-1, 1).squeeze(1)
+    def forward(self, x):
+        x = torch.flatten(self.main(x), 1)
+        return self.out(x).squeeze(1)
 
-def train(batch_size=64, num_epochs=200):
+
+def train(batch_size=64, num_epochs=100):
     # Load data
     transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
     dataset = datasets.CIFAR10(root="data/", download=True, transform=transform)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size)
 
+    # Initialize Generator and Discriminator
     netG = Generator().to(device)
     netG.apply(weights_init)
-    print(netG)
-
     netD = Discriminator().to(device)
     netD.apply(weights_init)
-    print(netD)
 
+    # Loss
     criterion = nn.BCELoss()
 
-    # setup optimizer
+    # Optimizer
     optimizerD = optim.Adam(netD.parameters(), lr=0.0002, betas=(0.5, 0.999))
     optimizerG = optim.Adam(netG.parameters(), lr=0.0002, betas=(0.5, 0.999))
 
+    # Train
     for epoch in range(1,num_epochs+1):
         g_loss = []
         d_loss = []
         for i, data in enumerate(dataloader, 0):
-            ############################
-            # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
-            ###########################
-            # train with real
+            # Data batch
             X = data[0].to(device)
             batch_size = X.shape[0]
-            netD.zero_grad()
-            label = torch.full((batch_size,), 1, device=device).to(torch.float32)
 
-            output = netD(X)
-            errD_real = criterion(output, label)
-            errD_real.backward()
-            D_x = output.mean().item()
+            # Labels
+            real_lbl = torch.full((batch_size,), 1, dtype=torch.float32, device=device)
+            fake_lbl = torch.full((batch_size,), 0, dtype=torch.float32, device=device)
 
-            # train with fake
+            #############
+            # Generator #
+            #############
+            netG.zero_grad()
             noise = torch.randn(batch_size, 100, 1, 1, device=device)
             fake = netG(noise)
-            label.fill_(0)
-            output = netD(fake.detach())
-            errD_fake = criterion(output, label)
-            errD_fake.backward()
-            errD = errD_real + errD_fake
-            optimizerD.step()
-
-            ############################
-            # (2) Update G network: maximize log(D(G(z)))
-            ###########################
-            netG.zero_grad()
-            label.fill_(1)
             output = netD(fake)
-            errG = criterion(output, label)
+            errG = criterion(output, real_lbl)
             errG.backward()
             optimizerG.step()
+
+
+            #################
+            # Discriminator #
+            #################
+            # Real
+            netD.zero_grad()
+            output = netD(X)
+            errD_real = criterion(output, real_lbl)
+
+            # Fake
+            output = netD(fake.detach())
+            errD_fake = criterion(output, fake_lbl)
+            ((errD_real+errD_fake)/2).backward()
+            optimizerD.step()
+
             g_loss.append(errG.item())
-            d_loss.append(errD.item())
+            d_loss.append((errD_real + errD_fake).item())
+
         print('[%d/%d] Loss_D: %.4f Loss_G: %.4f'% (epoch, num_epochs, sum(d_loss)/len(d_loss), sum(g_loss)/len(g_loss)))
 
         if epoch % 20 == 0:
             torch.save(netG.state_dict(), 'results/DCGAN/models/netG_epoch_%d.pth' % (epoch))
-            torch.save(netD.state_dict(), 'results/DCGAN/models/netD_epoch_%d.pth' % (epoch))
+            #torch.save(netD.state_dict(), 'results/DCGAN/models/netD_epoch_%d.pth' % (epoch))
