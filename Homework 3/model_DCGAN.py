@@ -23,7 +23,7 @@ def weights_init(m):
 
 """
 References for DCGAN model
-https://arxiv.org/pdf/1511.06434.pdf
+https://arxiv.org/abs/1511.06434
 https://github.com/pytorch/examples/blob/master/dcgan
 https://github.com/w86763777/pytorch-gan-collections
 https://github.com/eriklindernoren/PyTorch-GAN
@@ -129,11 +129,12 @@ def train(batch_size=64, num_epochs=100):
             netD.zero_grad()
             output = netD(X)
             errD_real = criterion(output, real_lbl)
+            errD_real.backward()
 
             # Fake
             output = netD(fake.detach())
             errD_fake = criterion(output, fake_lbl)
-            ((errD_real+errD_fake)/2).backward()
+            errD_fake.backward()
             optimizerD.step()
 
             g_loss.append(errG.item())
