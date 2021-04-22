@@ -11,7 +11,7 @@ Pytorch Version 1.8.0
 CIFAR-10 https://www.cs.toronto.edu/~kriz/cifar.html
 
 ## Training the Model
-To train a model
+To train each model
 ```
 python .\main.py --model ACGAN --evaluate train
 python .\main.py --model DCGAN --evaluate train
@@ -19,7 +19,7 @@ python .\main.py --model WGAN --evaluate train
 ```
 
 ## Generate Images
-To generate images
+To generate images for each model
 ```
 python .\main.py --model ACGAN --evaluate generate
 python .\main.py --model DCGAN --evaluate generate
@@ -29,7 +29,7 @@ python .\main.py --model WGAN --evaluate generate
 ## FID Score
 Fid score was computed using https://github.com/mseitzer/pytorch-fid.
 
-To recompute the fid score first install the package above
+To compute the fid score first install the package
 ```
 pip install pytorch-fid
 ```
@@ -49,3 +49,4 @@ python -m pytorch_fid results\DCGAN\images_fake results\DCGAN\images_real --gpu 
 
 ## Results
 The DCGAN achieved a FID score of 51.4
+The WGAN achieved a FID score of 48.9
