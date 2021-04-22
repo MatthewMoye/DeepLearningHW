@@ -49,4 +49,5 @@ python -m pytorch_fid results\DCGAN\images_fake results\DCGAN\images_real --gpu 
 
 ## Results
 The DCGAN achieved a FID score of 51.4
+
 The WGAN achieved a FID score of 48.9
