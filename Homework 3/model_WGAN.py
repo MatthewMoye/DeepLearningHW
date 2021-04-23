@@ -48,8 +48,7 @@ class Generator(nn.Module):
     def forward(self, x):
         x = self.dense(x)
         x = x.view(x.size(0), -1, 4, 4)
-        x = self.main(x)
-        return x
+        return self.main(x)
 
 
 class Discriminator(nn.Module):
@@ -74,13 +73,11 @@ class Discriminator(nn.Module):
         self.out = nn.Linear(8192, 1)
 
     def forward(self, x):
-        x = self.main(x)
-        x = torch.flatten(x, start_dim=1)
-        x = self.out(x)
-        return x
+        x = torch.flatten(self.main(x), 1)
+        return self.out(x)
 
 
-def train(batch_size=64, num_epochs=400):
+def train(batch_size=64, num_epochs=500):
     # Load data
     transform = transforms.Compose([
         transforms.RandomHorizontalFlip(),

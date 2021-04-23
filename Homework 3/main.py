@@ -20,26 +20,22 @@ print(args)
 
 if args.model == "DCGAN":
     from model_DCGAN import Generator, train
+    model_file = "netG_epoch_100.pth"
+    fixed_noise = torch.randn(args.sample_size, 100, 1, 1, device=device)
 elif args.model == "WGAN":
     from model_WGAN import Generator, train
+    model_file = "netG_epoch_400.pth"
+    fixed_noise = torch.randn(args.sample_size, 100, device=device)
 elif args.model == "ACGAN":
     from model_ACGAN import Generator, train
+    model_file = "netG_epoch_180.pth"
+    fixed_noise = torch.randn(args.sample_size, 100, device=device)
 else:
-    print("Only DCGAN, WGAN, and ACGAN models can be ran")
+    print("Only DCGAN, WGAN, and ACGAN models")
     exit()
 
 # Generate images, and save images
 def generate_results(model):
-    if model == "DCGAN":
-        fixed_noise = torch.randn(args.sample_size, 100, 1, 1, device=device)
-        model_file = "netG_epoch_100.pth"
-    elif model == "WGAN":
-        fixed_noise = torch.randn(args.sample_size, 100, device=device)
-        model_file = "netG_epoch_400.pth"
-    else:
-        fixed_noise = torch.randn(args.sample_size, 100, 1, 1, device=device)
-        model_file = "netG_epoch_100.pth"
-
     if not os.path.exists("results/{}/images_fake".format(model)):
         os.makedirs("results/{}/images_fake".format(model))
         os.makedirs("results/{}/images_real".format(model))
