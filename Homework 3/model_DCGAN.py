@@ -89,6 +89,8 @@ def train(batch_size=64, num_epochs=100):
     netG.apply(weights_init)
     netD = Discriminator().to(device)
     netD.apply(weights_init)
+    print(netG)
+    print(netD)
 
     # Loss
     criterion = nn.BCELoss()

@@ -104,7 +104,6 @@ def train(batch_size=64, num_epochs=200):
     netD.apply(weights_init)
     print(netG)
     print(netD)
-    exit()
 
     # Loss
     source_criterion = nn.BCELoss()

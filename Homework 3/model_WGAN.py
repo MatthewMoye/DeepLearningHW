@@ -110,6 +110,8 @@ def train(batch_size=64, num_epochs=500):
     netG.apply(weights_init)
     netD = Discriminator().to(device)
     netD.apply(weights_init)
+    print(netG)
+    print(netD)
 
     # Optimizer
     optimizerG = optim.Adam(netG.parameters(), lr=0.0002, betas=[0.0,0.9])
